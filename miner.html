@@ -1,0 +1,187 @@
+<script src="https://wzrd.in/standalone/buffer"></script>
+<script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+
+<script>
+const abi = [
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "nonce",
+				"type": "uint256"
+			}
+		],
+		"name": "mint",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getChallenge",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getDifficulty",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getReward",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getTarget",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+const web3 = new Web3(window.web3.currentProvider);
+
+const contract = web3.eth.contract(abi).at("0xd54e771df1b552053dd0fdd858569f9eb81aa96b");
+
+const getChallenge = async () => new Promise((resolve, reject) =>
+	contract.getChallenge((err, res) => err ? reject(err) :
+		resolve(Buffer.from(res.slice(2), "hex"))
+	)
+);
+
+const getDifficulty = async () => new Promise((resolve, reject) =>
+	contract.getDifficulty((err, res) => err ? reject(err) :
+		resolve(+res)
+	)
+)
+
+const getTarget = async () => new Promise((resolve, reject) =>
+	contract.getTarget((err, res) => err ? reject(err) :
+		resolve(Buffer.from(res.slice(2), "hex"))
+	)
+);
+
+const mint = async nonce => new Promise((resolve, reject) =>
+	contract.mint.sendTransaction(`0x${nonce.toString("hex")}`, {
+		gasPrice: 50000000000
+	}, err => err ? reject(err) : resolve())
+);
+
+const { Buffer } = buffer;
+
+const hash = async (...inputs) => {
+	const input = Buffer.concat(inputs);
+	const digest = await crypto.subtle.digest("SHA-256", input);
+
+	return new Buffer(await crypto.subtle.digest("SHA-256", digest));
+};
+
+const randomBytes = async n => {
+	const buf = Buffer.alloc(n);
+
+	await crypto.getRandomValues(buf);
+
+	return buf;
+}
+
+const lessThan = (a, b) => {
+	for(let i = 0; i < a.length; i++) {
+		if(a[i] < b[i])
+			return true;
+
+		if(a[i] > b[i])
+			return false;
+	}
+};
+
+const increment = a => {
+	for(let i = a.length - 1; i >= 0; i--) {
+		if(a[i]++ !== 255) return;
+	}
+};
+
+const mine = async () => {
+	let challenge = await getChallenge();
+	let target = await getTarget();
+
+	console.log(await getDifficulty());
+	console.log(target);
+
+	let i = 0;
+
+	const nonce = await randomBytes(32);
+
+	while(true) {
+		increment(nonce);
+		const output = await hash(challenge, nonce);
+
+		if(lessThan(output, target)) {
+			console.log("Found solution!");
+
+			await mint(nonce);
+
+			console.log("Waiting for new challenge");
+
+			while(challenge.compare(await getChallenge()) === 0) {
+				await new Promise(r => setTimeout(r, 500));
+			}
+
+			console.log("Recieved new challenge");
+
+			challenge = await getChallenge();
+			target = await getTarget();
+			console.log(target);
+		}
+
+		if(i++ % 100000 === 0) {
+			console.log(i);
+		}
+	}
+};
+
+mine();
+
+</script>
+\z\
