@@ -43,7 +43,6 @@ contract Pickaxe {
 
     constructor() public {
         jackpotPeriodStart = now;
-
         challenge = blockhash(block.number - 1);
     }
 
@@ -66,6 +65,9 @@ contract Pickaxe {
             uint jackpotPeriodLength = now - jackpotPeriodStart;
 
             jackpotDifficulty = jackpotDifficulty * jackpotPeriodLength / jackpotPeriodDuration * minted / jackpot;
+
+            jackpotPeriodStart = now;
+            challenge = blockhash(block.number - 1);
         }
     }
 
