@@ -1,20 +1,19 @@
 pragma solidity ^0.4.16;
 
 contract Pickaxe {
-    uint constant challengeInterval = 60;
-    uint constant difficultyAdjust = 10;
-    uint constant rewardAdjust = 262800;
+    uint constant jackpot = 51200000000;
+    uint jackpotDifficulty = 1000000;
 
-    uint difficulty = 300000;
-    uint reward = 512;
+    uint constant jackpotPeriodDuration = 86400;
+    uint jackpotPeriodStart = 0;
+    uint minted = 0;
+
+    uint constant maxTarget = ~uint(0);
+
     uint supply = 0;
-
     bytes32 challenge;
-    uint[] times;
 
     mapping(address => uint) balances;
-
-    // info
 
     function totalSupply() public constant returns (uint) {
         return supply;
@@ -38,55 +37,31 @@ contract Pickaxe {
         return true;
     }
 
-    function getDifficulty() public constant returns (uint) {
-        return difficulty;
-    }
-
-    function getTarget() public constant returns (bytes32) {
-        return bytes32(~uint(0) / difficulty);
-    }
-
-    function getReward() public constant returns (uint) {
-        return reward;
-    }
-
-    function getChallenge() public constant returns (bytes32) {
-        return challenge;
-    }
-
-    // actions
-
     constructor() public {
+        jackpotPeriodStart = now;
+
         challenge = blockhash(block.number - 1);
-        times[times.length++] = block.timestamp;
     }
 
     event Mint(address indexed from, uint reward, bytes32 newChallenge);
 
-    function mint(uint nonce) public {
-        bytes32 output = keccak256(abi.encodePacked(challenge, nonce));
+    function mint(uint nonce, uint rewardDifficulty) public {
+        require(
+            uint(keccak256(
+                abi.encodePacked(challenge, rewardDifficulty, msg.sender, nonce)
+            )) < maxTarget / rewardDifficulty
+        );
 
-        require(uint(output) < ~uint(0) / difficulty);
+        uint reward = jackpot * rewardDifficulty / jackpotDifficulty;
 
-        challenge = output;
-        times[times.length++] = block.timestamp;
-
-        balances[msg.sender] += reward;
         supply += reward;
+        minted += reward;
+        balances[msg.sender] += reward;
 
-        emit Mint(msg.sender, reward, challenge);
+        if(minted >= jackpot) {
+            uint jackpotPeriodLength = now - jackpotPeriodStart;
 
-        if(times.length % difficultyAdjust == 0) {
-            // adjust difficulty
-
-            uint currentDelta = times[times.length - 1] - times[times.length - difficultyAdjust];
-            uint targetDelta = challengeInterval * difficultyAdjust;
-
-            difficulty = (difficulty / currentDelta) * targetDelta;
-        }
-
-        if(times.length % rewardAdjust == 0) {
-            reward /= 2;
+            jackpotDifficulty = jackpotDifficulty * jackpotPeriodLength / jackpotPeriodDuration * minted / jackpot;
         }
     }
 
