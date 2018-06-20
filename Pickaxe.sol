@@ -1,7 +1,11 @@
 pragma solidity ^0.4.16;
 
 contract Pickaxe {
-    uint constant jackpot = 51200000000;
+    string public constant name = "Pickaxe";
+    string public constant symbol = "PIAX";
+    uint8 public constant decimals = 18;  // 18 is the most common number of decimal places
+
+    uint constant jackpot = 512000000000000000000;
     uint jackpotDifficulty = 1000000;
 
     uint constant jackpotPeriodDuration = 86400;
