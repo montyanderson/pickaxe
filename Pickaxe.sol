@@ -68,6 +68,8 @@ contract Pickaxe {
 
             jackpotPeriodStart = now;
             challenge = blockhash(block.number - 1);
+
+            minted = 0;
         }
     }
 
