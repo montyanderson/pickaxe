@@ -5,17 +5,17 @@ contract Pickaxe {
     string public constant symbol = "PIAX";
     uint8 public constant decimals = 18;  // 18 is the most common number of decimal places
 
-    uint constant jackpot = 512000000000000000000;
-    uint jackpotDifficulty = 1000000;
+    uint public constant jackpot = 512000000000000000000;
+    uint public jackpotDifficulty = 1000000;
 
-    uint constant jackpotPeriodDuration = 86400;
-    uint jackpotPeriodStart = 0;
-    uint minted = 0;
+    uint constant public jackpotPeriodDuration = 86400;
+    uint public jackpotPeriodStart = 0;
+    uint public minted = 0;
 
-    uint constant maxTarget = ~uint(0);
+    uint public constant maxTarget = ~uint(0);
 
     uint supply = 0;
-    bytes32 challenge;
+    bytes32 public challenge;
 
     mapping(address => uint) balances;
 
@@ -46,7 +46,8 @@ contract Pickaxe {
         challenge = blockhash(block.number - 1);
     }
 
-    event Mint(address indexed from, uint reward, bytes32 newChallenge);
+    event Mint(address indexed from, uint reward);
+    event Jackpot(bytes32 newChallenge);
 
     function mint(uint nonce, uint rewardDifficulty) public {
         require(
@@ -70,7 +71,11 @@ contract Pickaxe {
             challenge = blockhash(block.number - 1);
 
             minted = 0;
+
+            emit Jackpot(challenge);
         }
+
+        emit Mint(msg.sender, reward);
     }
 
 }
